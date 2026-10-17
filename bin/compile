@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# bin/compile <build-dir> <cache-dir>
+# bin/compile <build-dir> <cache-dir> <env-dir>
 
 # Fail fast
 set -e
+set -o pipefail
 
 # Debug
 set -x
 
 BUILD_DIR=$1
 CACHE_DIR=$2
+ENV_DIR=$3
 GSL_BUILD_DIR="${BUILD_DIR}/vendor/gsl"
 APP_VENDOR_DIR="${HOME}/vendor"
 EXPORT_PATH="$PWD/export"
@@ -23,8 +25,18 @@ function set-default-env (){
   echo "export $1=\$$1:${APP_VENDOR_DIR}/$2" >> $EXPORT_PATH
 }
 
-echo "-----> Fetching and vendoring gsl"
-curl "https://vp-public-dev.s3.us-west-2.amazonaws.com/libraries/gsl-1.14.tar.gz" -s -o - | tar xzf - --strip 1 -C "$GSL_BUILD_DIR"
+# GSL_VERSION config var picks the tarball; apps without it stay on 1.14
+GSL_VERSION="1.14"
+if [ -n "$ENV_DIR" ] && [ -f "$ENV_DIR/GSL_VERSION" ]; then
+  GSL_VERSION=$(cat "$ENV_DIR/GSL_VERSION")
+fi
+if ! [[ "$GSL_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+  echo " !     Invalid GSL_VERSION '${GSL_VERSION}', expected something like 1.14 or 2.8" >&2
+  exit 1
+fi
+
+echo "-----> Fetching and vendoring gsl ${GSL_VERSION}"
+curl -fsS "https://vp-public-dev.s3.us-west-2.amazonaws.com/libraries/gsl-${GSL_VERSION}.tar.gz" -o - | tar xzf - --strip 1 -C "$GSL_BUILD_DIR"
 
 # FYI we do this and set the export path explicitly because we cannot assume all buildpacks copy this dir over
 # Only copy if source and destination are different (they're the same when HOME=/app in Heroku CI)

@@ -25,6 +25,16 @@ https://github.com/heroku/heroku-buildpack-ruby.git#v119
 
 You can replace the ruby buildpack with whatever you language of choice is.
 
+## Choosing the GSL version
+
+The buildpack downloads `gsl-<version>.tar.gz` from the `vp-public-dev` S3 bucket. Set the `GSL_VERSION` config var to pick one; apps that don't set it get 1.14.
+
+```
+heroku config:set GSL_VERSION=2.8 -a <app>
+```
+
+The tarball has to exist before an app asks for it. A missing one fails the build instead of deploying without GSL.
+
 ## Compiling binaries on heroku
 
 You can find an example script that compiles binary from a source tar.gz [here](extra/build_binary)
@@ -33,7 +43,6 @@ This script relies on the fog gem to upload the binary to s3. You will need to a
 
 ## Known issues
 
-Only supports the 1.16 GSL release.
 Cannot set the AWS Bucket to download dependencies via an env var.
 
 Pull requests welcome.
