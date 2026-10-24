@@ -27,22 +27,31 @@ You can replace the ruby buildpack with whatever you language of choice is.
 
 ## Choosing the GSL version
 
-The buildpack downloads `gsl-<version>.tar.gz` from the `vp-public-dev` S3 bucket. Set the `GSL_VERSION` config var to pick one; apps that don't set it get 1.14.
+Set the `GSL_VERSION` config var to pick a version; apps that don't set it get 1.14.
 
 ```
 heroku config:set GSL_VERSION=2.8 -a <app>
 ```
 
-The tarball has to exist before an app asks for it. A missing one fails the build instead of deploying without GSL.
+| Version | Release | Notes |
+|---------|---------|-------|
+| 1.14 | [gsl-1.14](https://github.com/velopro/heroku-gsl-buildpack/releases/tag/gsl-1.14) | Copied from the old `vp-public-dev` S3 bucket. Built with prefix `/app/vendor/gsl-test`, so its `gsl-config` reports the wrong paths. |
+| 2.8 | [gsl-2.8](https://github.com/velopro/heroku-gsl-buildpack/releases/tag/gsl-2.8) | Built on `heroku/heroku:24-build` with `extra/build-gsl.sh`. |
 
-## Compiling binaries on heroku
+`bin/compile` downloads `gsl-<version>.tar.gz` from the `gsl-<version>` release and checks it against a SHA-256 pinned in the script. Any other version, a missing asset or a checksum mismatch fails the build instead of deploying without GSL.
 
-You can find an example script that compiles binary from a source tar.gz [here](extra/build_binary)
+## Adding a GSL version
 
-This script relies on the fog gem to upload the binary to s3. You will need to add that dependency to your Gemfile. You will also need to set an ENV var for your AWS key and secret.
+1. Build the tarball in the Heroku build image for your stack:
 
-## Known issues
+   ```
+   docker run -i --user root --name gsl-build --platform linux/amd64 \
+     heroku/heroku:24-build bash -c 'mkdir -p /out && bash -s 2.8 /out' < extra/build-gsl.sh
+   docker cp gsl-build:/out/gsl-2.8.tar.gz .
+   ```
 
-Cannot set the AWS Bucket to download dependencies via an env var.
+   The script checks the GNU signature, builds with `--prefix=/app/vendor/gsl`, runs the test suites VeloPro relies on and prints the tarball's SHA-256.
+2. Publish it as a release: `gh release create gsl-2.8 gsl-2.8.tar.gz --latest=false`.
+3. Add the version and its SHA-256 to the `case` in `bin/compile`.
 
-Pull requests welcome.
+Don't replace an existing release's asset. Builds pinned to the old checksum will fail; publish a new version instead.
