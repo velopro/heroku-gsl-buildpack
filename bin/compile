@@ -30,13 +30,27 @@ GSL_VERSION="1.14"
 if [ -n "$ENV_DIR" ] && [ -f "$ENV_DIR/GSL_VERSION" ]; then
   GSL_VERSION=$(cat "$ENV_DIR/GSL_VERSION")
 fi
-if ! [[ "$GSL_VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
-  echo " !     Invalid GSL_VERSION '${GSL_VERSION}', expected something like 1.14 or 2.8" >&2
-  exit 1
-fi
+# Tarballs are assets on this repo's gsl-<version> releases. Pinning their
+# checksums here means a replaced asset fails the build instead of deploying.
+case "$GSL_VERSION" in
+  1.14) GSL_SHA256="7335507c63fb4a0075d5b2aee3c154ed33422f2800d6b0fe45a6af4067f39a05" ;;
+  2.8)  GSL_SHA256="69140c658415a5e3e76dfca89ca549199105f9b43561719b3ea413b00a714214" ;;
+  *)
+    echo " !     Unsupported GSL_VERSION '${GSL_VERSION}', expected 1.14 or 2.8" >&2
+    exit 1
+    ;;
+esac
+GSL_URL="https://github.com/velopro/heroku-gsl-buildpack/releases/download/gsl-${GSL_VERSION}/gsl-${GSL_VERSION}.tar.gz"
+GSL_TARBALL=$(mktemp)
 
 echo "-----> Fetching and vendoring gsl ${GSL_VERSION}"
-curl -fsS "https://vp-public-dev.s3.us-west-2.amazonaws.com/libraries/gsl-${GSL_VERSION}.tar.gz" -o - | tar xzf - --strip 1 -C "$GSL_BUILD_DIR"
+curl -fsSL "$GSL_URL" -o "$GSL_TARBALL"
+if ! echo "${GSL_SHA256}  ${GSL_TARBALL}" | sha256sum -c --quiet -; then
+  echo " !     Checksum mismatch for ${GSL_URL}" >&2
+  exit 1
+fi
+tar xzf "$GSL_TARBALL" --strip 1 -C "$GSL_BUILD_DIR"
+rm -f "$GSL_TARBALL"
 
 # FYI we do this and set the export path explicitly because we cannot assume all buildpacks copy this dir over
 # Only copy if source and destination are different (they're the same when HOME=/app in Heroku CI)
