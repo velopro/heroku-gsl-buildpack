@@ -25,18 +25,17 @@ function set-default-env (){
   echo "export $1=\$$1:${APP_VENDOR_DIR}/$2" >> $EXPORT_PATH
 }
 
-# GSL_VERSION config var picks the tarball; apps without it stay on 1.14
-GSL_VERSION="1.14"
+# GSL_VERSION config var picks the tarball; apps without it get 2.8
+GSL_VERSION="2.8"
 if [ -n "$ENV_DIR" ] && [ -f "$ENV_DIR/GSL_VERSION" ]; then
   GSL_VERSION=$(cat "$ENV_DIR/GSL_VERSION")
 fi
 # Tarballs are assets on this repo's gsl-<version> releases. Pinning their
 # checksums here means a replaced asset fails the build instead of deploying.
 case "$GSL_VERSION" in
-  1.14) GSL_SHA256="7335507c63fb4a0075d5b2aee3c154ed33422f2800d6b0fe45a6af4067f39a05" ;;
-  2.8)  GSL_SHA256="69140c658415a5e3e76dfca89ca549199105f9b43561719b3ea413b00a714214" ;;
+  2.8) GSL_SHA256="69140c658415a5e3e76dfca89ca549199105f9b43561719b3ea413b00a714214" ;;
   *)
-    echo " !     Unsupported GSL_VERSION '${GSL_VERSION}', expected 1.14 or 2.8" >&2
+    echo " !     Unsupported GSL_VERSION '${GSL_VERSION}', expected 2.8" >&2
     exit 1
     ;;
 esac

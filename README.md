@@ -25,20 +25,17 @@ https://github.com/heroku/heroku-buildpack-ruby.git#v119
 
 You can replace the ruby buildpack with whatever you language of choice is.
 
-## Choosing the GSL version
+## GSL version
 
-Set the `GSL_VERSION` config var to pick a version; apps that don't set it get 1.14.
-
-```
-heroku config:set GSL_VERSION=2.8 -a <app>
-```
+The buildpack installs GSL 2.8, the default and the only supported version. The `GSL_VERSION` config var is optional; setting it to `2.8` is harmless, and any other value fails the build.
 
 | Version | Release | Notes |
 |---------|---------|-------|
-| 1.14 | [gsl-1.14](https://github.com/velopro/heroku-gsl-buildpack/releases/tag/gsl-1.14) | Copied from the old `vp-public-dev` S3 bucket. Built with prefix `/app/vendor/gsl-test`, so its `gsl-config` reports the wrong paths. |
-| 2.8 | [gsl-2.8](https://github.com/velopro/heroku-gsl-buildpack/releases/tag/gsl-2.8) | Built on `heroku/heroku:24-build` with `extra/build-gsl.sh`. |
+| 2.8 (default) | [gsl-2.8](https://github.com/velopro/heroku-gsl-buildpack/releases/tag/gsl-2.8) | Built on `heroku/heroku:24-build` with `extra/build-gsl.sh`. |
 
-`bin/compile` downloads `gsl-<version>.tar.gz` from the `gsl-<version>` release and checks it against a SHA-256 pinned in the script. Any other version, a missing asset or a checksum mismatch fails the build instead of deploying without GSL.
+`bin/compile` downloads `gsl-<version>.tar.gz` from the `gsl-<version>` release and checks it against a SHA-256 pinned in the script. An unsupported version, a missing asset or a checksum mismatch fails the build instead of deploying without GSL.
+
+GSL 1.14 is no longer supported. The [gsl-1.14](https://github.com/velopro/heroku-gsl-buildpack/releases/tag/gsl-1.14) release is kept only as history: it was copied from the old `vp-public-dev` S3 bucket and built with prefix `/app/vendor/gsl-test`, so its `gsl-config` reports the wrong paths.
 
 ## Adding a GSL version
 
@@ -52,6 +49,6 @@ heroku config:set GSL_VERSION=2.8 -a <app>
 
    The script checks the GNU signature, builds with `--prefix=/app/vendor/gsl`, runs the test suites VeloPro relies on and prints the tarball's SHA-256.
 2. Publish it as a release: `gh release create gsl-2.8 gsl-2.8.tar.gz --latest=false`.
-3. Add the version and its SHA-256 to the `case` in `bin/compile`.
+3. Add the version and its SHA-256 to the `case` in `bin/compile`, and update the unsupported-version error to list it. To make it the default, also change the `GSL_VERSION` default in `bin/compile`.
 
 Don't replace an existing release's asset. Builds pinned to the old checksum will fail; publish a new version instead.
